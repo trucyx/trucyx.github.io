@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="utf-8">
+  
+  <title>ES6 Promise：模式与反模式 | trucyx</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="原文：ES6 Promises: Patterns and Anti-Patterns作者：Bobby Brennan  当几年前，第一次使用 NodeJS 的时候，对现在被称为“ 回调地狱 ”的写法感到很困扰。幸运的是，现在是 2017 年了，NodeJS 已经采用大量 JavaScript 的最新特性，从 v4 开始已经支持 Promise。 尽管 Promise 可以让代码更加简洁易读，但">
+<meta name="keywords" content="JavaScript, promise">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ES6 Promise：模式与反模式">
+<meta property="og:url" content="http://yoursite.com/2017/09/29/es6-promises-patterns-and-anti-patterns/index.html">
+<meta property="og:site_name" content="trucyx">
+<meta property="og:description" content="原文：ES6 Promises: Patterns and Anti-Patterns作者：Bobby Brennan  当几年前，第一次使用 NodeJS 的时候，对现在被称为“ 回调地狱 ”的写法感到很困扰。幸运的是，现在是 2017 年了，NodeJS 已经采用大量 JavaScript 的最新特性，从 v4 开始已经支持 Promise。 尽管 Promise 可以让代码更加简洁易读，但">
+<meta property="og:locale" content="zh-cn">
+<meta property="og:updated_time" content="2019-03-31T15:33:32.983Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="ES6 Promise：模式与反模式">
+<meta name="twitter:description" content="原文：ES6 Promises: Patterns and Anti-Patterns作者：Bobby Brennan  当几年前，第一次使用 NodeJS 的时候，对现在被称为“ 回调地狱 ”的写法感到很困扰。幸运的是，现在是 2017 年了，NodeJS 已经采用大量 JavaScript 的最新特性，从 v4 开始已经支持 Promise。 尽管 Promise 可以让代码更加简洁易读，但">
+  
+  
+    <link rel="icon" href="/favicon.ico">
+  
+  <link rel="stylesheet" href="/css/typing.css">
+  <link rel="stylesheet" href="/css/donate.css">
+  
+</head>
+</html>
+  
+    
+      <body>
+    
+  
+      <div id="container" class="container">
+        <article id="post-es6-promises-patterns-and-anti-patterns" class="article article-type-post" itemscope itemprop="blogPost">
+  <header id="header" class="header">
+  <nav class="mobile-nav">
+    <h1 class="nickname">TrucyX</h1>
+    <ul class="mobile-nav-menu">
+      <label for="mobile-menu-toggle"><a>&#9776; Menu</a></label>
+      <input type="checkbox" id="mobile-menu-toggle">
+      <ul class="mobile-nav-link">
+        
+        <a href="/">Home</a>
+        
+        <a href="/archives">Archives</a>
+        
+        <a href="/notes">Notes</a>
+        
+      </ul>
+    </ul>
+  </nav>
+	
+		<nav id="main-nav" class="main-nav nav-left">
+	
+	
+	  <a class="main-nav-link" href="/">Home</a>
+	
+	  <a class="main-nav-link" href="/archives">Archives</a>
+	
+	  <a class="main-nav-link" href="/notes">Notes</a>
+	
+  </nav>
+</header>
+
+  <hr>
+  <div class="article-inner">
+    
+
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      ES6 Promise：模式与反模式
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry typo" itemprop="articleBody">
+      
+        <blockquote>
+<p>原文：<a href="https://medium.com/datafire-io/es6-promises-patterns-and-anti-patterns-bbb21a5d0918" target="_blank" rel="noopener">ES6 Promises: Patterns and Anti-Patterns</a><br>作者：Bobby Brennan</p>
+</blockquote>
+<p>当几年前，第一次使用 NodeJS 的时候，对现在被称为“ <a href="http://callbackhell.com/" target="_blank" rel="noopener">回调地狱</a> ”的写法感到很困扰。幸运的是，现在是 2017 年了，NodeJS 已经采用大量 JavaScript 的最新特性，从 <a href="http://node.green/" target="_blank" rel="noopener">v4</a> 开始已经支持 Promise。</p>
+<p>尽管 Promise 可以让代码更加简洁易读，但对于只熟悉回调函数的人来说，可能对此还是会有所怀疑。在这里，将列出我在使用Promise 时学到的一些基本模式，以及踩的一些坑。</p>
+<p><em>注意：<strong>在本文中</strong>将使用<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions" target="_blank" rel="noopener">箭头函数</a> ，如果你还不是很熟悉，其实很简单，建议<a href="http://exploringjs.com/es6/ch_arrow-functions.html" target="_blank" rel="noopener">先读一下使用它们的好处</a></em></p>
+<h2 id="模式与最佳实践"><a href="#模式与最佳实践" class="headerlink" title="模式与最佳实践"></a>模式与最佳实践</h2><h4 id="使用-Promise"><a href="#使用-Promise" class="headerlink" title="使用 Promise"></a>使用 Promise</h4><p>如果使用的是已经支持 Promise 的第三方库，那么使用起来非常简单。只需关心两个函数：<code>then()</code> 和 <code>catch()</code>。例如，有一个客户端 API 包含三个方法，<code>getItem()</code>，<code>updateItem()</code>，和<code>deleteItem()</code>，每一个方法都返回一个 Promise：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Promise</span>.resolve()</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> api.getItem(<span class="number">1</span>)</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    item.amount++</span><br><span class="line">    <span class="keyword">return</span> api.updateItem(<span class="number">1</span>, item);</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">update</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> api.deleteItem(<span class="number">1</span>);</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'error while working on item 1'</span>);</span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<p>每次调用 <code>then()</code> 会在 Promise 链中创建一个新的步骤，如果链中的任何一个地方出现错误，就会触发接下来的 <code>catch()</code> 。<code>then()</code> 和 <code>catch()</code> 都可以返回一个值或者一个新的 Promise，结果将被传递到 Promise 链的下一个<code>then()</code>。</p>
+<p>为了比较，这里使用回调函数来实现相同逻辑：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">api.getItem(<span class="number">1</span>, (err, data) =&gt; &#123;</span><br><span class="line">  <span class="keyword">if</span> (err) <span class="keyword">throw</span> err;</span><br><span class="line">  item.amount++;</span><br><span class="line">  api.updateItem(<span class="number">1</span>, item, (err, update) =&gt; &#123;</span><br><span class="line">    <span class="keyword">if</span> (err) <span class="keyword">throw</span> err;</span><br><span class="line">    api.deleteItem(<span class="number">1</span>, (err) =&gt; &#123;</span><br><span class="line">      <span class="keyword">if</span> (err) <span class="keyword">throw</span> err;</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>要注意的第一个区别是，使用回调函数，我们必须在过程的<strong>每个</strong>步骤中进行错误处理，而不是用单个的 catch-all 来处理。回调函数的第二个问题更直观，每个步骤都要水平缩进，而使用 Promise 的代码则有显而易见的顺序关系。</p>
+<h4 id="回调函数-Promise-化"><a href="#回调函数-Promise-化" class="headerlink" title="回调函数 Promise 化"></a>回调函数 Promise 化</h4><p>需要学习的第一个技巧是如何将回调函数转换为 Promise。你可能正在使用仍然基于回调的库，或是自己的旧代码，不过不用担心，因为只需要几行代码就可以将其包装成一个 Promise。这是将 Node 中的一个回调方法 <code>fs.readFile</code> 转换为 Promise的示例：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">readFilePromise</span>(<span class="params">filename</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">    fs.readFile(filename, <span class="string">'utf8'</span>, (err, data) =&gt; &#123;</span><br><span class="line">      <span class="keyword">if</span> (err) reject(err);</span><br><span class="line">      <span class="keyword">else</span> resolve(data);</span><br><span class="line">    &#125;)</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">readFilePromise(<span class="string">'index.html'</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">data</span> =&gt;</span> <span class="built_in">console</span>.log(data))</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> <span class="built_in">console</span>.log(e))</span><br></pre></td></tr></table></figure>
+<p>关键部分是 Promise 构造函数，它接收一个函数作为参数，这个函数有两个函数参数：<code>resolve</code> 和 <code>reject</code>。在这个函数里完成所有工作，完成之后，在成功时调用 <code>resolve</code>，如果有错误则调用 <code>reject</code>。</p>
+<p>需要注意的是只有<strong>一个</strong><code>resolve</code> 或者 <code>reject</code> 被调用，即应该只被调用一次。在我们的示例中，如果 <code>fs.readFile</code> 返回错误，我们将错误传递给 <code>reject</code>，否则将文件数据传递给<code>resolve</code>。</p>
+<h4 id="Promise-的值"><a href="#Promise-的值" class="headerlink" title="Promise 的值"></a>Promise 的值</h4><p>ES6 有两个很方便的辅助函数，用于通过普通值创建 Promise：<code>Promise.resolve()</code> 和 <code>Promise.reject()</code>。例如，可能需要在同步处理某些情况时一个返回 Promise 的函数：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">readFilePromise</span>(<span class="params">filename</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (!filename) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Promise</span>.reject(<span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"Filename not specified"</span>));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (filename === <span class="string">'index.html'</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="built_in">Promise</span>.resolve(<span class="string">'&lt;h1&gt;Hello!&lt;/h1&gt;'</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;<span class="comment">/*...*/</span>&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>注意，虽然可以传递任何东西（或者不传递任何值）给 <code>Promise.reject()</code>，但是好的做法是传递一个<code>Error</code>。</p>
+<h4 id="并行运行"><a href="#并行运行" class="headerlink" title="并行运行"></a>并行运行</h4><p><code>Promise.all</code>是一个并行运行 Promise 数组的方法，也就是说是同时运行。例如，我们有一个要从磁盘读取文件的列表。使用上面创建的 <code>readFilePromise</code> 函数，将如下所示：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> filenames = [<span class="string">'index.html'</span>, <span class="string">'blog.html'</span>, <span class="string">'terms.html'</span>];</span><br><span class="line"></span><br><span class="line"><span class="built_in">Promise</span>.all(filenames.map(readFilePromise))</span><br><span class="line">  .then(<span class="function"><span class="params">files</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'index:'</span>, files[<span class="number">0</span>]);</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'blog:'</span>, files[<span class="number">1</span>]);</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'terms:'</span>, files[<span class="number">2</span>]);</span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<p>我甚至不会使用传统的回调函数来尝试编写与之等效的代码，那样会很凌乱，而且也容易出错。</p>
+<h4 id="串行运行"><a href="#串行运行" class="headerlink" title="串行运行"></a>串行运行</h4><p>有时同时运行一堆 Promise 可能会出现问题。比如，如果尝试使用 <code>Promise.all</code> 的 API ​​去检索一堆资源，则可能会在达到速率限制时开始响应<a href="https://httpstatuses.com/429" target="_blank" rel="noopener">429错误</a>。</p>
+<p>一种解决方案是串行运行 Promise，或一个接一个地运行。但是在 ES6 中没有提供类似 <code>Promise.all</code> 这样的方法（为什么？），但我们可以使用 <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce?v=b" target="_blank" rel="noopener"><code>Array.reduce</code></a> 来实现：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> itemIDs = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];</span><br><span class="line"></span><br><span class="line">itemIDs.reduce(<span class="function">(<span class="params">promise, itemID</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> promise.then(<span class="function"><span class="params">_</span> =&gt;</span> api.deleteItem(itemID));</span><br><span class="line">&#125;, <span class="built_in">Promise</span>.resolve());</span><br></pre></td></tr></table></figure>
+<p>在这种情况下，我们需要等待每次调用 <code>api.deleteItem()</code> 完成之后才能进行下一次调用。这种方法，比为每个 itemID 写 <code>.then()</code> 更简洁更通用：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Promise</span>.resolve()</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.deleteItem(<span class="number">1</span>))</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.deleteItem(<span class="number">2</span>))</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.deleteItem(<span class="number">3</span>))</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.deleteItem(<span class="number">4</span>))</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.deleteItem(<span class="number">5</span>));</span><br></pre></td></tr></table></figure>
+<h4 id="Race"><a href="#Race" class="headerlink" title="Race"></a>Race</h4><p>ES6 提供的另一个很方便的函数是 <code>Promise.race</code>。跟 <code>Promise.all</code> 一样，接收一个 Promise 数组，并同时运行它们，但不同的是，会在一旦<strong>任何</strong> Promise 完成或失败的情况下返回，并放弃所有其他的结果。</p>
+<p>例如，我们可以创建一个在几秒钟之后超时的 Promise：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">timeout</span>(<span class="params">ms</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">new</span> <span class="built_in">Promise</span>(<span class="function">(<span class="params">resolve, reject</span>) =&gt;</span> &#123;</span><br><span class="line">    setTimeout(reject, ms);</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="built_in">Promise</span>.race([readFilePromise(<span class="string">'index.html'</span>), timeout(<span class="number">1000</span>)])</span><br><span class="line">  .then(<span class="function"><span class="params">data</span> =&gt;</span> <span class="built_in">console</span>.log(data))</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> <span class="built_in">console</span>.log(<span class="string">"Timed out after 1 second"</span>))</span><br></pre></td></tr></table></figure>
+<p>需要注意的是，其他 Promise 仍将继续运行 ，只是看不到结果而已。</p>
+<h4 id="捕获错误"><a href="#捕获错误" class="headerlink" title="捕获错误"></a>捕获错误</h4><p>捕获错误最常见的方式是添加一个  <code>.catch()</code> 代码块，这将捕获前面所有 <code>.then()</code> 代码块中的错误  ：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Promise</span>.resolve()</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.getItem(<span class="number">1</span>))</span><br><span class="line">  .then(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    item.amount++;</span><br><span class="line">    <span class="keyword">return</span> api.updateItem(<span class="number">1</span>, item);</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'failed to get or update item'</span>);</span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<p>在这里，只要有 <code>getItem</code> 或者 <code>updateItem</code> 失败，<code>catch()</code>就会被触发。但是如果我们想分开处理 <code>getItem</code> 的错误怎么办？只需再插入一个<code>catch()</code> 就可以，它也可以返回另一个 Promise。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">Promise</span>.resolve()</span><br><span class="line">  .then(<span class="function"><span class="params">_</span> =&gt;</span> api.getItem(<span class="number">1</span>))</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> api.createItem(<span class="number">1</span>, &#123;<span class="attr">amount</span>: <span class="number">0</span>&#125;))</span><br><span class="line">  .then(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    item.amount++;</span><br><span class="line">    <span class="keyword">return</span> api.updateItem(<span class="number">1</span>, item);</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'failed to update item'</span>);</span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<p>现在，如果<code>getItem()</code>失败，我们通过第一个 <code>catch</code> 介入并创建一条新的记录。</p>
+<h4 id="抛出错误"><a href="#抛出错误" class="headerlink" title="抛出错误"></a>抛出错误</h4><p>应该将 <code>then()</code> 语句中的所有代码视为 <code>try</code> 块内的所有代码。<code>return Promise.reject()</code> 和 <code>throw new Error()</code> 都会导致下一个 <code>catch()</code> 代码块的运行。</p>
+<p>这意味着运行时错误也会触发 <code>catch()</code>，所以不要去假设错误的来源。例如，在下面的代码中，我们可能希望该 <code>catch()</code> 只能获得 <code>getItem</code> 抛出的错误，但是如示例所示，它还会在我们的 <code>then()</code> 语句中捕获运行时错误。</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">api.getItem(<span class="number">1</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">delete</span> item.owner;</span><br><span class="line">    <span class="built_in">console</span>.log(item.owner.name);</span><br><span class="line">  &#125;)</span><br><span class="line">  .catch(<span class="function"><span class="params">e</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(e); <span class="comment">// Cannot read property 'name' of undefined</span></span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<h4 id="动态链"><a href="#动态链" class="headerlink" title="动态链"></a>动态链</h4><p>有时，我们想要动态地构建 Promise 链，例如，在满足特定条件时，插入一个额外的步骤。在下面的示例中，在读取给定文件之前，我们可以选择创建一个锁定文件：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">readFileAndMaybeLock</span>(<span class="params">filename, createLockFile</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">let</span> promise = <span class="built_in">Promise</span>.resolve();</span><br><span class="line"></span><br><span class="line">  <span class="keyword">if</span> (createLockFile) &#123;</span><br><span class="line">    promise = promise.then(<span class="function"><span class="params">_</span> =&gt;</span> writeFilePromise(filename + <span class="string">'.lock'</span>, <span class="string">''</span>))</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="keyword">return</span> promise.then(<span class="function"><span class="params">_</span> =&gt;</span> readFilePromise(filename));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一定要通过重写 <code>promise = promise.then(/*...*/)</code> 来更新 <code>Promise</code> 的值。参看接下来反模式中会提到的 <strong>多次调用 then()</strong>。</p>
+<h2 id="反模式"><a href="#反模式" class="headerlink" title="反模式"></a>反模式</h2><p>Promise 是一个整洁的抽象，但很容易陷入某些陷阱。以下是我遇到的一些最常见的问题。</p>
+<h4 id="重回回调地狱"><a href="#重回回调地狱" class="headerlink" title="重回回调地狱"></a>重回回调地狱</h4><p>当我第一次从回调函数转到 Promise 时，发现很难摆脱一些旧习惯，仍像使用回调函数一样嵌套 Promise：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">api.getItem(<span class="number">1</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    item.amount++;</span><br><span class="line">    api.updateItem(<span class="number">1</span>, item)</span><br><span class="line">      .then(<span class="function"><span class="params">update</span> =&gt;</span> &#123;</span><br><span class="line">        api.deleteItem(<span class="number">1</span>)</span><br><span class="line">          .then(<span class="function"><span class="params">deletion</span> =&gt;</span> &#123;</span><br><span class="line">            <span class="built_in">console</span>.log(<span class="string">'done!'</span>);</span><br><span class="line">          &#125;)</span><br><span class="line">      &#125;)</span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<p>这种嵌套是完全没有必要的。有时一两层嵌套可以帮助组合相关任务，但是最好总是使用 <code>.then()</code> 重写成 Promise 垂直链  。</p>
+<h4 id="没有返回"><a href="#没有返回" class="headerlink" title="没有返回"></a>没有返回</h4><p>我遇到的一个经常会犯的错误是在一个 Promise 链中忘记 <code>return</code> 语句。你能发现下面的 bug 吗？</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">api.getItem(<span class="number">1</span>)</span><br><span class="line">  .then(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    item.amount++;</span><br><span class="line">    api.updateItem(<span class="number">1</span>, item);</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">update</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> api.deleteItem(<span class="number">1</span>);</span><br><span class="line">  &#125;)</span><br><span class="line">  .then(<span class="function"><span class="params">deletion</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">console</span>.log(<span class="string">'done!'</span>);</span><br><span class="line">  &#125;)</span><br></pre></td></tr></table></figure>
+<p>因为我们没有在第4行的 <code>api.updateItem()</code> 前面写 <code>return</code>，所以 <code>then()</code> 代码块会立即 resolove，导致 <code>api.deleteItem()</code> 可能在<code>api.updateItem()</code> 完成之前就被调用。</p>
+<p>在我看来，这是 ES6 Promise 的一个大问题，往往会引发意想不到的行为。问题是，  <code>.then()</code> 可以返回一个值，也可以返回一个新的 Promise，<code>undefined</code> 完全是一个有效的返回值。就个人而言，如果我负责 Promise API，我会在 <code>.then()</code> 返回   <code>undefined</code> 时抛出运行时错误，但现在我们需要特别注意 <code>return</code> 创建的 Promise。</p>
+<h4 id="多次调用-then"><a href="#多次调用-then" class="headerlink" title="多次调用 .then()"></a>多次调用 <code>.then()</code></h4><p>根据规范，在同一个 Promise 上多次调用 <code>then()</code> 是完全有效的，并且回调将按照其注册顺序被调用。但是，我并未见过需要这样做的场景，并且在使用返回值和错误处理时可能会产生一些意外行为：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.resolve(<span class="string">'a'</span>);</span><br><span class="line">p.then(<span class="function"><span class="params">_</span> =&gt;</span> <span class="string">'b'</span>);</span><br><span class="line">p.then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result) <span class="comment">// 'a'</span></span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> q = <span class="built_in">Promise</span>.resolve(<span class="string">'a'</span>);</span><br><span class="line">q = q.then(<span class="function"><span class="params">_</span> =&gt;</span> <span class="string">'b'</span>);</span><br><span class="line">q = q.then(<span class="function"><span class="params">result</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(result) <span class="comment">// 'b'</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>在这个例子中，因为我们在每次调用 <code>then()</code> 不更新 <code>p</code> 的值，所以我们看不到 <code>&#39;b&#39;</code> 返回。但是每次调用 <code>then()</code> 时更新 <code>q</code>，所以其行为更可预测。</p>
+<p>这也适用于错误处理：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">let</span> p = <span class="built_in">Promise</span>.resolve();</span><br><span class="line">p.then(<span class="function"><span class="params">_</span> =&gt;</span> &#123;<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"whoops!"</span>)&#125;)</span><br><span class="line">p.then(<span class="function"><span class="params">_</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'hello!'</span>); <span class="comment">// 'hello!'</span></span><br><span class="line">&#125;)</span><br><span class="line"></span><br><span class="line"><span class="keyword">let</span> q = <span class="built_in">Promise</span>.resolve();</span><br><span class="line">q = q.then(<span class="function"><span class="params">_</span> =&gt;</span> &#123;<span class="keyword">throw</span> <span class="keyword">new</span> <span class="built_in">Error</span>(<span class="string">"whoops!"</span>)&#125;)</span><br><span class="line">q = q.then(<span class="function"><span class="params">_</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">console</span>.log(<span class="string">'hello'</span>); <span class="comment">// We never reach here</span></span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>在这里，我们期望的是抛出一个错误来打破 Promise 链，但由于没有更新 <code>p</code> 的值，所以第二个 <code>then()</code> 仍会被调用。</p>
+<p>有可能在一个 Promise 上多次调用 <code>.then()</code> 有很多理由  ，因为它允许将 Promise 分配到几个新的独立的 Promise 中，但是还没发现真实的使用场景。</p>
+<h4 id="混合使用回调和-Promise"><a href="#混合使用回调和-Promise" class="headerlink" title="混合使用回调和 Promise"></a>混合使用回调和 Promise</h4><p>很容易进入一种陷阱，在使用基于 Promise 库的同时，仍在基于回调的项目中工作。始终避免在 <code>then()</code> 或 <code>catch()</code> 使用回调函数 ，否则 Promise 会吞噬任何后续的错误，将其作为 Promise 链的一部分。例如，以下内容看起来是一个挺合理的方式，使用回调函数来包装一个 Promise：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">getThing</span>(<span class="params">callback</span>) </span>&#123;</span><br><span class="line">  api.getItem(<span class="number">1</span>)</span><br><span class="line">    .then(<span class="function"><span class="params">item</span> =&gt;</span> callback(<span class="literal">null</span>, item))</span><br><span class="line">    .catch(<span class="function"><span class="params">e</span> =&gt;</span> callback(e));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">getThing(<span class="function"><span class="keyword">function</span>(<span class="params">err, thing</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (err) <span class="keyword">throw</span> err;</span><br><span class="line">  <span class="built_in">console</span>.log(thing);</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>这里的问题是，如果有错误，我们会收到关于“Unhandled promise rejection”的警告，即使我们添加了一个 <code>catch()</code> 代码块。这是因为，<code>callback()</code> 在 <code>then()</code> 和 <code>catch()</code> 都会被调用，使之成为 Promise 链的一部分。</p>
+<p>如果必须使用回调来包装 Promise，可以使用  <code>setTimeout</code> （或者是 NodeJS 中的 <code>process.nextTick</code>）来打破 Promise：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">function</span> <span class="title">getThing</span>(<span class="params">callback</span>) </span>&#123;</span><br><span class="line">  api.getItem(<span class="number">1</span>)</span><br><span class="line">    .then(<span class="function"><span class="params">item</span> =&gt;</span> setTimeout(<span class="function"><span class="params">_</span> =&gt;</span> callback(<span class="literal">null</span>, item)))</span><br><span class="line">    .catch(<span class="function"><span class="params">e</span> =&gt;</span> setTimeout(<span class="function"><span class="params">_</span> =&gt;</span> callback(e)));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">getThing(<span class="function"><span class="keyword">function</span>(<span class="params">err, thing</span>) </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (err) <span class="keyword">throw</span> err;</span><br><span class="line">  <span class="built_in">console</span>.log(thing);</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<h4 id="不捕获错误"><a href="#不捕获错误" class="headerlink" title="不捕获错误"></a>不捕获错误</h4><p>JavaScript 中的错误处理有点奇怪。虽然支持熟悉的 <code>try/catch</code> 范例，但是没有办法强制调用者以 Java 的方式处理错误。然而，使用回调函数，使用所谓的“errbacks”，即第一个参数是一个错误回调变得很常见。这迫使调用者至少承认错误的可能性。例如，<code>fs</code> 库：</p>
+<figure class="highlight javascript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">fs.readFile(<span class="string">'index.html'</span>, <span class="string">'utf8'</span>, (err, data) =&gt; &#123;</span><br><span class="line">  <span class="keyword">if</span> (err) <span class="keyword">throw</span> err;</span><br><span class="line">  <span class="built_in">console</span>.log(data);</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+<p>使用 Promise，又将很容易忘记需要进行错误处理，特别是对于敏感操作（如文件系统和数据库访问）。目前，如果没有捕获到 reject 的 Promise，将在 NodeJS 中看到非常丑的警告：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">(node:29916) UnhandledPromiseRejectionWarning: Unhandled promise rejection (rejection id: 1): Error: whoops!</span><br><span class="line">(node:29916) DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.</span><br></pre></td></tr></table></figure>
+<p>确保在主要的事件循环中任何 Promise 链的末尾添加 <code>catch()</code> 以避免这种情况。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>希望这是一篇有用的关于常见 Promise 模式和反模式的概述。如果你想了解更多，这里有一些有用的资源：</p>
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise" target="_blank" rel="noopener">Mozilla 的 ES6 Promise 文档</a></li>
+<li><a href="https://developers.google.com/web/fundamentals/getting-started/primers/promises" target="_blank" rel="noopener">来自 Google 的 Promise 介绍</a></li>
+<li><a href="http://www.datchley.name/es6-promises/" target="_blank" rel="noopener">Dave Atchley 的 ES6 Promise 概述</a></li>
+</ul>
+<p>更多的 Promise <a href="http://www.datchley.name/promise-patterns-anti-patterns/" target="_blank" rel="noopener">模式</a>和<a href="https://hackernoon.com/javascript-promises-best-practices-anti-patterns-b32309f65551" target="_blank" rel="noopener">反模式</a></p>
+<p><a href="https://medium.com/datafire-io" target="_blank" rel="noopener">或者阅读来自 DataFire 团队的内容</a></p>
+
+      
+      
+    </div>
+    <footer class="article-footer">
+      <ul class="article-meta">
+        <li>
+          <span class="label">Published Date:</span>
+          <a href="/2017/09/29/es6-promises-patterns-and-anti-patterns/" class="article-date">
+  <time datetime="2017-09-29T07:29:36.000Z" itemprop="datePublished">2017-09-29</time>
+</a>
+
+        </li>
+        
+          <li>
+            <span class="label">Category:</span>
+            
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/translator/">translator</a>
+  </div>
+
+
+          </li>
+        
+        
+          <li>
+            <span class="label">Tag:</span>
+            
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/JavaScript-promise/">JavaScript, promise</a></li></ul>
+
+
+          </li>
+        
+        <hr>
+      </ul>
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav" class="article-nav">
+  
+    <span id="article-nav-newer" class="article-nav-link-wrap newer"></span>
+  
+  
+    <a href="/2017/06/02/writing-modern-javascript-code/" id="article-nav-older" class="article-nav-link-wrap older">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">编写现代 JavaScript 代码</div>
+    </a>
+  
+</nav>
+
+
+  
+</article>
+
+
+
+
+
+
+
+
+
+
+      </div>
+      
+    <footer id="footer" class="post-footer footer">
+      
+      <hr>
+      <div id="footerContent" class="footer-content">
+        <p>High Hopes</p>
+
+
+      </div>
+    </footer>
+
+      
+
+
+
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
+
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+
+
+<script src="/js/typing.js"></script>
+<!--[if lt IE 9]><script src="https://cdn.jsdelivr.net/npm/html5shiv@3/dist/html5shiv.min.js"></script><![endif]-->
+
+
+
+
+
+
+
+    </div>
+  </body>
+</html>
