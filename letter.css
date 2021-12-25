@@ -40,7 +40,7 @@ img {
     box-shadow: 0 19px 48px rgba(0, 0, 0, 0.3), 0 15px 32px rgba(0, 0, 0, 0.22);
 }
 .card .header {
-    height: 200px;
+    height: 120px;
     width: 100%;
     background-color: #D33144;
     position: relative;
@@ -52,7 +52,7 @@ img {
     height: 0px;
 }
 .card .header .title {
-    height: 200px;
+    height: 120px;
     display: flex;
     align-items: center;
     text-align: center;
